@@ -1,123 +1,216 @@
 # Nirmal Carbon — Indian Carbon Credit Marketplace Backend
 
-Production-grade Node.js + Express.js backend for **Nirmal Carbon**, an Indian carbon credit marketplace with transactional payments, PDF offset certificates, a gamification/loyalty engine, and full OpenAPI documentation.
+A polished, production-ready Node.js + Express backend for **Nirmal Carbon** — an Indian carbon credit marketplace with:
+- Transaction processing through **Razorpay**
+- On-demand **PDF offset certificates**
+- **Gamification** and loyalty points
+- **Mongoose** data models with full **OpenAPI** documentation
+- Email workflows powered by **Resend** and React-based templates
 
 ---
 
-## 1. Prerequisites
-- **Node.js**: 20.x LTS or higher
-- **MongoDB**: 7.x or higher (run locally or on Atlas)
-- **Razorpay**: Test account keys (for simulated payments)
-- **Resend API**: Account key (for transactional notifications)
+## Table of Contents
+
+1. [Why This Backend](#why-this-backend)
+2. [Tech Stack](#tech-stack)
+3. [Getting Started](#getting-started)
+4. [Environment Variables](#environment-variables)
+5. [Scripts](#scripts)
+6. [API Documentation](#api-documentation)
+7. [Seeding the Database](#seeding-the-database)
+8. [Authentication Flow](#authentication-flow)
+9. [User Roles & Access](#user-roles--access)
+10. [Demo Credentials](#demo-credentials)
+11. [Razorpay Sandbox](#razorpay-sandbox)
+12. [Troubleshooting](#troubleshooting)
+13. [License](#license)
 
 ---
 
-## 2. Installation
-Clone the repository and install all dependencies:
+## Why This Backend
+
+This backend is built for a modern carbon marketplace and includes:
+- **Modular API layers** for users, projects, payments, transactions, rewards, and admin controls.
+- **Secure authentication** with JWT access and refresh tokens.
+- **Real-time business logic** for credit holdings, retirement, and reward points.
+- **Comprehensive validation** using request schemas and centralized error handling.
+- **Swagger-driven API discovery** so frontend and QA teams can onboard quickly.
+
+---
+
+## Tech Stack
+
+- Node.js 20.x+ / ES modules
+- Express.js
+- MongoDB / Mongoose
+- Razorpay payments
+- Resend transactional emails
+- Swagger UI / swagger-jsdoc
+- Winston logging
+- Helmet, CORS, rate limiting and other security middleware
+
+---
+
+## Getting Started
+
+### 1. Clone
+
+```bash
+git clone https://github.com/<your-org>/GreenVision-Backend.git
+cd GreenVision-Backend
+```
+
+### 2. Install dependencies
+
 ```bash
 npm install
 ```
 
----
+### 3. Configure environment
 
-## 3. Environment Variables
-Copy `.env.example` to `.env` and fill out your credentials:
+Copy the example env file and update values:
+
 ```bash
 cp .env.example .env
 ```
 
-### Configuration Parameters Explained:
-- `PORT`: Server port (default: `5000`).
-- `MONGO_URI`: Connection string for MongoDB (default: `mongodb://localhost:27017/nirmal_carbon`).
-- `JWT_SECRET`: Minimum 32-character key for signing secure JWT tokens.
-- `JWT_EXPIRES_IN`: Access token validity duration (recommended: `15m`).
-- `REFRESH_TOKEN_EXPIRES_DAYS`: Refresh token database retention lifecycle in days (recommended: `7`).
-- `RAZORPAY_KEY_ID`: Razorpay test key ID.
-- `RAZORPAY_KEY_SECRET`: Razorpay test key secret.
-- `RAZORPAY_WEBHOOK_SECRET`: Secure webhook verification key.
-- `RESEND_API_KEY`: API authorization key for transactional emails.
-- `RESEND_FROM_EMAIL`: Authorized sender email registered on Resend (default: `notifications@nirmalcarbon.in`).
-- `ALLOWED_ORIGINS`: Comma-separated list of origins for CORS validation.
+> On Windows PowerShell, use:
+> `Copy-Item .env.example .env`
 
-> [!NOTE]
-> If `RESEND_API_KEY` is empty, or `NODE_ENV` is set to `development`, emails are safely mocked and logged directly to the console instead of firing.
+### 4. Start the app
 
----
-
-## 4. Running the Server
-
-### Development Mode (auto-reload with nodemon):
 ```bash
 npm run dev
 ```
 
-### Production Mode:
-```bash
-npm start
-```
+The backend starts on `http://localhost:5000` by default.
 
 ---
 
-## 5. Seeding Database
-A comprehensive seeder script is included. This drops any previous collections and seeds the database with **12 Users, 8 Projects, 17 Transactions, 12 Rewards**, plus corresponding holdings and system notifications.
+## Environment Variables
 
-To seed the database:
+The example file contains every configuration key used by the app.
+Update the values before running locally or deploying.
+
+| Variable | Purpose | Suggested Value |
+| --- | --- | --- |
+| `PORT` | HTTP port | `5000` |
+| `NODE_ENV` | Environment mode | `development` or `production` |
+| `MONGO_URI` | MongoDB connection | `mongodb://localhost:27017/nirmal_carbon` |
+| `JWT_SECRET` | JWT signing secret | 32+ chars |
+| `JWT_EXPIRES_IN` | Access token lifetime | `15m` |
+| `REFRESH_TOKEN_EXPIRES_DAYS` | Refresh token retention | `7` |
+| `RAZORPAY_KEY_ID` | Razorpay test key ID | `rzp_test_xxx` |
+| `RAZORPAY_KEY_SECRET` | Razorpay test key secret | `your_secret` |
+| `RAZORPAY_WEBHOOK_SECRET` | Webhook verification secret | `your_webhook_secret` |
+| `RESEND_API_KEY` | Resend email API key | `re_xxx` |
+| `RESEND_FROM_EMAIL` | Transactional sender email | `notifications@nirmalcarbon.in` |
+| `AWS_ACCESS_KEY_ID` | AWS S3 access key | optional |
+| `AWS_SECRET_ACCESS_KEY` | AWS S3 secret | optional |
+| `AWS_REGION` | AWS region | `ap-south-1` |
+| `AWS_BUCKET_NAME` | S3 bucket name | `nirmal-carbon` |
+| `ALLOWED_ORIGINS` | CORS allowed origins | `http://localhost:3000` |
+| `FRONTEND_URL` | Frontend app URL | `http://localhost:3000` |
+| `POINTS_PER_CREDIT` | Points awarded per credit purchase | `10` |
+
+> Note: If `RESEND_API_KEY` is missing or `NODE_ENV=development`, outgoing emails are mocked and logged instead of being sent.
+
+---
+
+## Scripts
+
+| Script | Description |
+| --- | --- |
+| `npm start` | Run the production server (`node server.js`) |
+| `npm run dev` | Run with `nodemon` for live reload |
+| `npm run seed` | Seed the database with demo data |
+
+---
+
+## API Documentation
+
+Swagger documentation is generated from JSDoc comments across the codebase.
+After starting the server, open:
+
+**http://localhost:5000/api/docs**
+
+Use the **Authorize** button to pass a valid bearer token and test protected routes.
+
+---
+
+## Seeding the Database
+
+A rich seeder script creates demo data for:
+- Users
+- Projects
+- Transactions
+- Rewards
+- Credit holdings
+- Notifications
+
+Run:
+
 ```bash
 npm run seed
 ```
 
 ---
 
-## 6. Swagger API Sandbox
-The entire API is documented via JSDoc OpenAPI specifications. To explore, authorize, and test all backend endpoints interactively, visit the Swagger Sandbox at:
-👉 **[http://localhost:5000/api/docs](http://localhost:5000/api/docs)**
+## Authentication Flow
+
+1. Register or login at `/api/auth/register` or `/api/auth/login`
+2. Copy the returned `data.accessToken`
+3. Open Swagger and click **Authorize**
+4. Paste the token into the Bearer auth field
+5. Call protected endpoints like `/api/users/me`, `/api/projects`, `/api/dashboard`
 
 ---
 
-## 7. Authentication Flow Guide
-1. Go to `/api/auth/login` (or `/api/auth/register`).
-2. Provide valid user credentials.
-3. From the successful JSON response, copy the `data.accessToken` string.
-4. Click the green **Authorize** button at the top right of the Swagger interface.
-5. Paste the token in the input box and click **Authorize**.
-6. All protected routes are now fully unlocked for testing!
+## User Roles & Access
+
+| Role | Scope | Typical access |
+| --- | --- | --- |
+| `admin` | Full platform administration | Approve/reject projects, manage users, view global metrics |
+| `firm` | Project creators | Upload projects, manage firm profile, view sales stats |
+| `corporate` | Credit buyers | Purchase carbon credits, retire credits, view purchase history |
+| `individual` | Buyers and consumers | Browse projects, buy credits, claim rewards |
 
 ---
 
-## 8. Role Permissions Matrix
+## Demo Credentials
 
-| Route Group | Path Prefix | Public | Individual | Corporate | Firm | Admin |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Auth** | `/api/auth/*` | Yes (login/reg) | Me / Logout | Me / Logout | Me / Logout | Me / Logout |
-| **Users** | `/api/users/*` | No | Full Access | Full Access | Full Access | Full Access |
-| **Projects** | `/api/projects/*` | List / Search / Details | Read | Read | Create / Edit Own | Verify / Reject / Delete |
-| **Payments** | `/api/payments/*` | Webhook Only | Create / Verify | Create / Verify | No | Webhook Read |
-| **Transactions** | `/api/transactions/*` | No | Own | Own | No | Read All |
-| **Holdings** | `/api/holdings/*` | No | Own Read | Own / **Retire Credits** | No | Read All |
-| **Rewards** | `/api/rewards/*` | List / Details | History | History | No | Create / Update / Delete |
-| **Dashboards** | `/api/dashboard/*` | Leaderboard | Individual | Individual | Firm | Admin |
-| **Admin** | `/api/admin/*` | No | No | No | No | **Full Admin Controls** |
+| Email | Password | Role |
+| --- | --- | --- |
+| `admin@nirmalcarbon.in` | `Demo@1234` | `admin` |
+| `greenearth@nirmalcarbon.in` | `Demo@1234` | `firm` |
+| `techcorp@nirmalcarbon.in` | `Demo@1234` | `corporate` |
+| `kavya@example.com` | `Demo@1234` | `individual` |
 
 ---
 
-## 9. Seed Demo Credentials
-Use these pre-configured user credentials to log in and test different dashboard features:
+## Razorpay Sandbox
 
-| Email | Password | Role | Description |
-| :--- | :--- | :--- | :--- |
-| **admin@nirmalcarbon.in** | `Demo@1234` | **admin** | Full platform KPIs, project approvals, user editing, analytics |
-| **greenearth@nirmalcarbon.in** | `Demo@1234` | **firm** | Developer profile, project upload draft, sales stats |
-| **techcorp@nirmalcarbon.in** | `Demo@1234` | **corporate** | Corporate carbon buyer, **Retire Credits** dashboard |
-| **kavya@example.com** | `Demo@1234` | **individual** | Standard buyer, gamification stats, certificate lists, high levels |
+Use the following card details for Razorpay sandbox testing:
+
+- Card number: `4111 1111 1111 1111`
+- Expiry: any future date
+- CVV: any 3-digit number
+- OTP: any 4-digit number
 
 ---
 
-## 10. Razorpay Test Sandbox
-To simulate successful credit purchases, check out using Razorpay's native sandbox test mode:
-- **Card Number**: `4111 1111 1111 1111` (Visa Test Card)
-- **Expiry**: Any future date (e.g., `12/30`)
-- **CVV**: Any 3-digit number (e.g., `123`)
-- **OTP**: Any 4-digit code (e.g., `1234`)
+## Troubleshooting
+
+- **MongoDB connection failed**: verify `MONGO_URI` and Atlas IP whitelist.
+- **Email not sending**: check `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
+- **Swagger not showing**: confirm the server is running and open `/api/docs`.
+- **Duplicate email index warning**: ensure each schema defines the email index only once.
+
+---
+
+## License
+
+MIT
 
 ---
 

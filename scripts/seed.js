@@ -30,16 +30,16 @@ async function seedUsers() {
   const hashed = await hashPassword(DEMO_PASSWORD);
   const users = [
     {
-      name: 'Admin User',
+      fullName: 'Admin User',
       email: 'admin@nirmalcarbon.com',
       role: 'admin',
-      password: hashed,
+      passwordHash: hashed,
     },
     {
-      name: 'Demo User',
+      fullName: 'Demo User',
       email: 'demo@nirmalcarbon.com',
-      role: 'user',
-      password: hashed,
+      role: 'individual',
+      passwordHash: hashed,
     },
   ];
   console.log('💾 Inserting users...');
@@ -48,21 +48,39 @@ async function seedUsers() {
   return created;
 }
 
-async function seedProjects() {
+async function seedProjects(users) {
   console.log('📦 Dropping Project collection...');
   await Project.deleteMany({});
+  const adminUser = users.find(u => u.role === 'admin');
+  const startDate = new Date();
   const projects = [
     {
-      name: 'Solar Farm Kerala',
+      firmId: adminUser._id,
+      title: 'Solar Farm Kerala',
       description: 'Utility‑scale solar installation in Kerala',
       location: 'Kerala, India',
-      creditAmount: 5000,
+      projectType: 'solar',
+      totalCredits: 5000,
+      availableCredits: 5000,
+      pricePerCredit: 100,
+      startDate: startDate,
+      status: 'verified',
+      co2Impact: 15000,
+      treesEquivalent: 500,
     },
     {
-      name: "Mangrove Restoration Tamil Nadu",
+      firmId: adminUser._id,
+      title: "Mangrove Restoration Tamil Nadu",
       description: 'Community‑driven mangrove planting project',
       location: 'Tamil Nadu, India',
-      creditAmount: 3000,
+      projectType: 'mangrove',
+      totalCredits: 3000,
+      availableCredits: 3000,
+      pricePerCredit: 120,
+      startDate: startDate,
+      status: 'verified',
+      co2Impact: 9000,
+      treesEquivalent: 300,
     },
   ];
   console.log('💾 Inserting projects...');
@@ -80,32 +98,38 @@ async function seedTransactionsAndHoldings(users, projects) {
   const holdings = [];
 
   // Simple seed: each demo user buys credits from first project
-  const buyer = users.find(u => u.role === 'user');
+  const buyer = users.find(u => u.role === 'individual');
   const seller = users.find(u => u.role === 'admin');
   const project = projects[0];
+  const creditsToPurchase = 100;
+  const pricePerCredit = project.pricePerCredit;
+  const totalAmount = creditsToPurchase * pricePerCredit;
 
   const transaction = {
-    buyer: buyer._id,
-    seller: seller._id,
-    project: project._id,
-    creditAmount: 1000,
-    price: 1200, // INR
-    status: 'completed',
-    createdAt: new Date(),
+    buyerId: buyer._id,
+    projectId: project._id,
+    creditsPurchased: creditsToPurchase,
+    pricePerCreditSnapshot: pricePerCredit,
+    totalAmount: totalAmount,
+    gstAmount: Math.round(totalAmount * 0.18), // 18% GST
+    paymentStatus: 'completed',
   };
   transactions.push(transaction);
 
   const holding = {
-    user: buyer._id,
-    project: project._id,
-    creditAmount: transaction.creditAmount,
-    acquiredAt: new Date(),
+    userId: buyer._id,
+    projectId: project._id,
+    creditsOwned: creditsToPurchase,
+    avgPricePaid: pricePerCredit,
   };
   holdings.push(holding);
 
   console.log('💾 Inserting transactions...');
   const createdTx = await Transaction.insertMany(transactions);
   console.log(`✅ ${createdTx.length} transactions created`);
+
+  // Update holding with transaction ID
+  holdings[0].lastTransactionId = createdTx[0]._id;
 
   console.log('💾 Inserting credit holdings...');
   const createdHold = await CreditHolding.insertMany(holdings);
@@ -119,13 +143,15 @@ async function seedRewards() {
   await Reward.deleteMany({});
   const rewards = [
     {
-      title: 'Early Bird Discount',
+      name: 'Early Bird Discount',
       description: '5% off on first purchase',
+      category: 'digital',
       pointsRequired: 200,
     },
     {
-      title: 'Referral Bonus',
+      name: 'Referral Bonus',
       description: 'Earn 100 credits for each successful referral',
+      category: 'offset_bundle',
       pointsRequired: 500,
     },
   ];
@@ -141,10 +167,11 @@ async function seedNotifications(users) {
   const notifications = [];
   for (const user of users) {
     notifications.push({
-      user: user._id,
-      message: 'Welcome to Nirmal Carbon! 🎉',
-      read: false,
-      createdAt: new Date(),
+      userId: user._id,
+      type: 'system',
+      title: 'Welcome to Nirmal Carbon',
+      message: 'Welcome to Nirmal Carbon! 🎉 Start trading carbon credits today.',
+      isRead: false,
     });
   }
   console.log('💾 Inserting notifications...');
@@ -160,7 +187,7 @@ async function seedRefreshTokens(users) {
   const expiresIn = 7 * 24 * 60 * 60 * 1000; // 7 days
   for (const user of users) {
     tokens.push({
-      user: user._id,
+      userId: user._id,
       token: 'placeholder-refresh-token-' + user._id,
       expiresAt: new Date(Date.now() + expiresIn),
     });
@@ -182,7 +209,7 @@ async function main() {
     console.log('✅ MongoDB connected');
 
     const users = await seedUsers();
-    const projects = await seedProjects();
+    const projects = await seedProjects(users);
     await seedTransactionsAndHoldings(users, projects);
     await seedRewards();
     await seedNotifications(users);
