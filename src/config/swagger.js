@@ -13,6 +13,10 @@ const options = {
         url: 'http://localhost:5000',
         description: 'Development Server',
       },
+      {
+        url: 'https://greenvision-backend-4dpl.onrender.com',
+        description: 'Production Server (Render)',
+      },
     ],
     components: {
       securitySchemes: {
