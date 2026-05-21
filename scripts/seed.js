@@ -171,6 +171,7 @@ async function seedRefreshTokens(users) {
   return created;
 }
 
+
 async function main() {
   try {
     console.log('🔗 Connecting to MongoDB...');
